@@ -630,26 +630,6 @@ function paintRelations() {
   const names = Object.keys(rel).sort((a, b) => (rel[a].order ?? 99) - (rel[b].order ?? 99));
   $('#qRels').innerHTML = names.map((n) => relRowHtml(n, rel[n])).join('')
     || '<div class="clue-row unknown">尚未结识任何人</div>';
-  // 长按删除——用事件委托（替换整个容器，旧监听自动清除）
-  let timer;
-  $('#qRels').onpointerdown = (e) => {
-    const row = e.target.closest('.rel-row');
-    if (!row) return;
-    const name = names[[...$('#qRels').querySelectorAll('.rel-row')].indexOf(row)];
-    if (!name) return;
-    timer = setTimeout(() => {
-      showModal('删除人物', `<p>确定要移除 <b>${escapeHtml(name)}</b> 吗？</p>`, [
-        { text: '取消', onClick: closeModal },
-        { text: '删除', cls: 'danger', onClick: () => {
-          delete (game.relations || {})[name];
-          save(); paintRelations();
-          closeModal();
-        }}
-      ]);
-    }, 3000);
-  };
-  $('#qRels').onpointerup = () => clearTimeout(timer);
-  $('#qRels').onpointerleave = () => clearTimeout(timer);
 }
 
 function paintPeople() {
@@ -674,30 +654,6 @@ function paintPeople() {
       </div>
     </div>`;
   }).join('') || '<div class="clue-row unknown" style="margin:10px 12px">这个分类下暂无人物</div>';
-
-  // 长按删除——事件委托
-  let pressTimer;
-  $('#peopleList').onpointerdown = (e) => {
-    const card = e.target.closest('.people-card');
-    if (!card) return;
-    const name = card.dataset.name;
-    if (!name) return;
-    pressTimer = setTimeout(() => {
-      showModal('删除人物', `<p>确定要从人物列表中移除 <b>${escapeHtml(name)}</b> 吗？</p><p style="color:var(--paper-dim);font-size:12px">此操作不可撤销，但不影响剧情进度。</p>`, [
-        { text: '取消', onClick: closeModal },
-        { text: '删除', cls: 'danger', onClick: () => {
-          const rel = game.relations || {};
-          delete rel[name];
-          game.relations = rel;
-          save();
-          paintPeople();
-          closeModal();
-        }}
-      ]);
-    }, 3000);
-  };
-  $('#peopleList').onpointerup = () => clearTimeout(pressTimer);
-  $('#peopleList').onpointerleave = () => clearTimeout(pressTimer);
 }
 
 function paintStatsBar() {
