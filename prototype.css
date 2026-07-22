@@ -46,9 +46,9 @@ img { -webkit-user-drag: none; }
 .home-header {
   flex: 0 0 auto;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 14px 6px;
+  padding: 6px 10px 4px;
 }
-.home-header .logo { height: 34px; filter: drop-shadow(0 0 8px rgba(201,169,106,.35)); }
+.home-header .logo { height: 30px; filter: drop-shadow(0 0 8px rgba(201,169,106,.35)); }
 .btn-gear { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
 .btn-gear img { width: 26px; height: 26px; }
 .btn-gear:active img { filter: brightness(1.4); transform: rotate(30deg); transition: transform .2s; }
@@ -57,7 +57,7 @@ img { -webkit-user-drag: none; }
 .loc-bar {
   flex: 0 0 auto;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 2px 16px 8px;
+  padding: 0 12px 6px;
   border-bottom: 1px solid rgba(138,109,59,.35);
 }
 .loc-text .loc-line1 {
@@ -69,11 +69,12 @@ img { -webkit-user-drag: none; }
 .loc-text .loc-line2 b { color: var(--gold); font-weight: normal; }
 /* 十二时辰罗盘：12 个时辰图标围成环，指针指向当前时辰 */
 .compass {
-  position: relative; flex: 0 0 88px; width: 88px; height: 88px;
+  position: relative; flex: 0 0 72px; width: 72px; height: 72px;
   border-radius: 50%;
   background: radial-gradient(circle at 50% 42%, #241d12 0%, #14100a 62%, rgba(20,16,10,.0) 78%);
   border: 1px solid rgba(138,109,59,.55);
   box-shadow: 0 0 10px rgba(0,0,0,.6), inset 0 0 12px rgba(0,0,0,.7);
+  margin-right: 48px;
 }
 .compass .hour-name {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
@@ -82,17 +83,17 @@ img { -webkit-user-drag: none; }
 }
 .compass .compass-pointer {
   position: absolute; left: 50%; top: 50%; z-index: 2;
-  width: 2px; height: 28px; margin: -28px 0 0 -1px;
-  transform-origin: 1px 28px;
+  width: 2px; height: 22px; margin: -22px 0 0 -1px;
+  transform-origin: 1px 22px;
   background: linear-gradient(to top, rgba(201,169,106,.3), var(--gold));
   box-shadow: 0 0 6px rgba(201,169,106,.5);
 }
 .compass .compass-pointer::after {
   content: ''; position: absolute; left: 50%; top: -2px;
   width: 0; height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 8px solid var(--gold);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 6px solid var(--gold);
   transform: translateX(-50%);
   filter: drop-shadow(0 0 3px rgba(201,169,106,.8));
 }
@@ -142,7 +143,7 @@ img { -webkit-user-drag: none; }
 /* ============ 通用卡片 ============ */
 .card {
   position: relative;
-  margin: 10px 10px 0;
+  margin: 6px 10px 0;
   padding: 10px 14px 12px;
   background:
     linear-gradient(180deg, rgba(20,17,12,.92), rgba(13,11,8,.94)),
@@ -183,7 +184,7 @@ img { -webkit-user-drag: none; }
 /* ============ 旁白卡 ============ */
 .narrate-card .card-label { display: flex; align-items: center; gap: 8px; }
 .narrate-card .card-label img { height: 7px; flex: 1 1 0; min-width: 0; object-fit: fill; opacity: .5; }
-.narrate-body { max-height: 36dvh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+.narrate-body { max-height: 46dvh; overflow-y: auto; -webkit-overflow-scrolling: touch;
   font-size: 13.5px; line-height: 1.8; color: var(--paper); }
 .narrate-body::-webkit-scrollbar { width: 0; }
 .narrate-body p { margin-bottom: 4px; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
@@ -192,7 +193,7 @@ img { -webkit-user-drag: none; }
 .narrate-body p.player::before { content: "▸ "; }
 
 /* ============ 输入区 ============ */
-.input-card { padding-bottom: 10px; }
+.input-card { padding-bottom: 8px; margin-bottom: 6px; }
 .input-ask { display: flex; align-items: center; gap: 6px;
   font-family: var(--f-title); font-size: 13px; color: var(--gold); letter-spacing: 2px; margin-bottom: 8px; }
 .input-ask img { width: 14px; height: 14px; }
