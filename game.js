@@ -1038,6 +1038,13 @@ async function send(action) {
       && !/手机|电脑|汽车|飞机|手枪|炸弹/.test(data.items)) {
       game.items = data.items.trim().slice(0, 60);
     }
+    // newItems: 追加新物品，不去重（允许多张符纸等）
+    if (Array.isArray(data.newItems) && data.newItems.length) {
+      const cur = itemsList();
+      const adds = data.newItems.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim().slice(0, 20));
+      const merged = [...cur, ...adds];
+      game.items = merged.join('、') || '两手空空';
+    }
     if (typeof data.note === 'string' && data.note.trim()) {
       pushNote(data.note.trim(), String(data.reply || '').slice(0, 60));
     }
