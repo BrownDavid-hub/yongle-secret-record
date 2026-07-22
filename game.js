@@ -106,17 +106,21 @@ const WEATHER_LIST = ['晴', '阴', '雨', '雨夜', '雾', '雪', '夜'];
 
 // 开局是戌时（日暮下山，入夜遇诡异）
 function defaultTime() {
-  return { year: '永乐十七年', season: '春', shichen: 10, weather: '晴' };
+  return { year: '永乐十七年', season: '春', shichen: 4, weather: '晴' };
 }
 
-// 护栏照 statChanges：advanceHour 只认真值 true，weather 只认白名单
+// 护栏：advanceHour 限速——至少间隔 4 个回合才能再推进
+let lastHourAdvance = -10;
 function applyTimeWeather(tw) {
   if (!tw || typeof tw !== 'object') return;
   game.time = game.time || defaultTime();
   if (!Number.isInteger(game.time.shichen) || game.time.shichen < 0 || game.time.shichen > 11) {
     game.time.shichen = defaultTime().shichen;
   }
-  if (tw.advanceHour === true) game.time.shichen = (game.time.shichen + 1) % 12;
+  if (tw.advanceHour === true && game.turn - lastHourAdvance >= 4) {
+    game.time.shichen = (game.time.shichen + 1) % 12;
+    lastHourAdvance = game.turn;
+  }
   const w = String(tw.weather || '');
   if (WEATHER_LIST.includes(w)) game.time.weather = w;
 }
