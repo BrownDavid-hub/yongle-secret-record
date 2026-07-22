@@ -117,10 +117,10 @@ function applyTimeWeather(tw) {
   if (!Number.isInteger(game.time.shichen) || game.time.shichen < 0 || game.time.shichen > 11) {
     game.time.shichen = defaultTime().shichen;
   }
-  // advanceHours: AI 决定跳过几个时辰，范围 0~6，冷却 2 轮
+  // advanceHours: AI 决定跳过几个时辰，范围 0~8，冷却 2 轮
   const n = Number(tw.advanceHours);
   if (Number.isFinite(n) && n > 0 && game.turn - lastHourAdvance >= 2) {
-    const skip = Math.max(0, Math.min(6, Math.round(n)));
+    const skip = Math.max(0, Math.min(8, Math.round(n)));
     game.time.shichen = (game.time.shichen + skip) % 12;
     lastHourAdvance = game.turn;
   }
@@ -879,8 +879,14 @@ function systemPrompt(correction = '') {
   戌时(19-21)亥时(21-23)→夜晚：掌灯、月色、更夫、寂静、夜风
   子时(23-1)丑时(1-3)寅时(3-5)→深夜：漆黑、万籁俱寂、烛火、寒气
 - 严禁在午时描写"夜色"，严禁在子时描写"阳光"。
-- advanceHours：根据本回合行动耗时填跳过的时辰数（0~6）：
-  闲聊/观察/小动作→0，短途走动/喝茶吃饭→1，赶路半天/打坐→2~3，长途跋涉/睡一整夜→4~6
+- 【advanceHours 强制规则——必须严格执行】
+  如果你的回复中出现了以下情况，就必须设置对应的 advanceHours：
+  · 回复中提到"天亮""第二天""次日""一夜过去""睡醒" → advanceHours 至少填 5
+  · 回复中提到"走了半天""赶了一天的路""长途跋涉" → advanceHours 至少填 4
+  · 回复中提到"打坐一个时辰""走了半个时辰" → advanceHours 填 1~2
+  · 回复中提到"过了两个时辰""半日过去" → advanceHours 填 2~3
+  · 只是闲聊、观察、小范围走动 → 不填或 0
+  如果回复描述了时间跨度但没填 advanceHours，时钟就卡住了——这是严重错误。
 - 天气白名单：晴、阴、雨、雾、雪。不要用"夜"当天气。
 
 当前场景：${(game.location || defaultLocation()).name}
