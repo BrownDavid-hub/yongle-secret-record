@@ -639,7 +639,7 @@ function paintRelations() {
             closeModal();
           }}
         ]);
-      }, 800);
+      }, 3000);
     });
     row.addEventListener('pointerup', () => clearTimeout(timer));
     row.addEventListener('pointerleave', () => clearTimeout(timer));
@@ -687,7 +687,7 @@ function paintPeople() {
             closeModal();
           }}
         ]);
-      }, 800);
+      }, 3000);
     });
     card.addEventListener('pointerup', () => clearTimeout(pressTimer));
     card.addEventListener('pointerleave', () => clearTimeout(pressTimer));
