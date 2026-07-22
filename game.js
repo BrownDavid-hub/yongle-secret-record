@@ -158,23 +158,33 @@ function cleanPersonName(raw) {
   return s;
 }
 
-// 白名单：初始三人 + 当前章 people 列表里的人
+// 白名单：初始三人 + 当前章 people + 历史已出现人物（不锁死新人）
 function relationWhitelist() {
   const people = (chapter().people || [])
     .map(cleanPersonName)
     .filter(Boolean);
-  return [...new Set([...INITIAL_RELATIONS, ...people])];
+  const existing = Object.keys(game.relations || {});
+  return [...new Set([...INITIAL_RELATIONS, ...people, ...existing])];
 }
 
-// 护栏照 statChanges：白名单校验、delta 限幅 ±10、数量上限
+// 护栏：白名单校验（含历史人物）、delta 限幅 ±10、数量上限
 function applyRelations(list) {
   if (!Array.isArray(list)) return;
   game.relations = game.relations || defaultRelations();
   const white = relationWhitelist();
   for (const r of list.slice(0, 4)) {
     const name = String(r?.name || '').trim();
-    if (!white.includes(name)) continue;
-    const rec = game.relations[name] = game.relations[name] || { value: 0, met: false };
+    const clean = cleanPersonName(name);
+    if (!clean) continue;
+    // 新人不在白名单也可以加入
+    if (!white.includes(clean) && !white.includes(name)) {
+      // 新增人物：加入白名单并初始化
+      game.relations[clean] = { value: 0, met: false };
+    }
+    const key = game.relations[clean] ? clean : (game.relations[name] ? name : null);
+    if (!key) { game.relations[clean] = { value: 0, met: false }; }
+    const rec = game.relations[clean] || game.relations[name];
+    if (!rec) continue;
     const delta = Number(r?.delta);
     if (Number.isFinite(delta) && delta !== 0) {
       const safeDelta = Math.max(-10, Math.min(10, Math.round(delta)));
