@@ -422,6 +422,12 @@ function save() {
     clearTimeout(syncTimer);
     syncTimer = setTimeout(syncSaveToServer, 600);
   }
+  // 轻提示：右下角短暂显示"已存档"
+  const toast = document.createElement('div');
+  toast.textContent = '✓ 已存档';
+  toast.style.cssText = 'position:fixed;bottom:80px;right:14px;z-index:999;padding:4px 12px;background:rgba(0,0,0,.75);color:var(--gold);font-size:11px;border-radius:3px;pointer-events:none;transition:opacity .5s;';
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 600); }, 1500);
 }
 
 async function syncSaveToServer() {
@@ -1203,25 +1209,38 @@ function closeModal() { $('#modal').hidden = true; }
 
 /* ---------- 菜单页功能 ---------- */
 function openSaveModal() {
+  const c = chapter();
+  const saved = game.savedAt ? new Date(game.savedAt).toLocaleString('zh-CN') : '尚未保存';
   showModal('存档 / 读档', `
-    <div class="mrow"><button class="kbtn" id="sv-sync">立即同步存档</button></div>
-    <div class="mrow"><button class="kbtn" id="sv-pull">从服务器读取</button></div>
+    <div style="text-align:center;color:var(--paper-dim);font-size:12px;margin-bottom:10px">
+      当前：${c.volumeTitle} / ${shortTitle(c)} · 节点 ${game.node + 1}/${c.nodes.length}<br>
+      上次存档：${saved}
+    </div>
+    <div class="mrow"><button class="kbtn" id="sv-save">💾 手动存档</button></div>
+    <div class="mrow"><button class="kbtn" id="sv-sync">🔄 同步到服务器</button></div>
+    <div class="mrow"><button class="kbtn" id="sv-pull">📥 从服务器读取</button></div>
     <div class="mrow">
-      <button class="kbtn" id="sv-export">导出存档文件</button>
-      <button class="kbtn" id="sv-import">导入存档文件</button>
+      <button class="kbtn" id="sv-export">📤 导出文件</button>
+      <button class="kbtn" id="sv-import">📥 导入文件</button>
     </div>
     <input id="sv-file" type="file" accept="application/json" hidden>
     <div class="m-status" id="sv-status"></div>`, [
     { text: '关闭', onClick: closeModal },
   ]);
   const status = (t) => { $('#sv-status').textContent = t; };
+  $('#sv-save').onclick = () => {
+    save();
+    paint();
+    status('✅ 已存档。');
+  };
   $('#sv-sync').onclick = async () => {
     save();
-    status(await syncSaveToServer() ? '已同步到服务器，手机/电脑可互通。' : '同步失败：请确认通过本地服务端打开。');
+    const ok = await syncSaveToServer();
+    status(ok ? '✅ 已同步到服务器，手机/电脑可互通。' : '❌ 同步失败：请确认通过本地服务端打开。');
   };
   $('#sv-pull').onclick = async () => {
     const ok = await pullServerSave(true);
-    if (ok) { paint(); status('已从服务器读取最新存档。'); } else status('读取失败：服务器上没有可用存档。');
+    if (ok) { paint(); status('✅ 已从服务器读取最新存档。'); } else status('❌ 服务器上没有可用存档。');
   };
   $('#sv-export').onclick = () => {
     const blob = new Blob([JSON.stringify(game, null, 2)], { type: 'application/json' });
@@ -1230,7 +1249,7 @@ function openSaveModal() {
     a.download = `永乐秘闻录-存档-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
-    status('已导出存档文件。');
+    status('✅ 已导出存档文件。');
   };
   $('#sv-import').onclick = () => $('#sv-file').click();
   $('#sv-file').onchange = (e) => {
@@ -1246,7 +1265,7 @@ function openSaveModal() {
         paint();
         closeModal();
       } catch {
-        status('这个文件不是有效的存档。');
+        status('❌ 这个文件不是有效的存档。');
       }
     };
     reader.readAsText(file);
