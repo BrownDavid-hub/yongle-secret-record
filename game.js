@@ -287,7 +287,7 @@ function newGame() {
     history: [openingEntry(0)],
     suggestions: [],
     identity: '许七安 · 龙虎山弟子',
-    items: '桃木剑、残卷、符纸',
+    items: '桃木剑（剑格甲子）、半卷神鬼异志、符纸、朱砂',
     snapshots: [],
     stats: defaultStats(),
     time: defaultTime(),
@@ -860,6 +860,12 @@ function systemPrompt(correction = '') {
   const t = game.time || defaultTime();
   return `你是《永乐秘闻录》的文字冒险主持人，玩家扮演许七安。
 你必须紧贴当前小说章节，不要自创主线，不要提前泄露后续章节。
+
+【以下开局设定不可偏离——每次开局必须严格遵循】
+- 许七安此时持有三样东西：①百年桃木剑（剑格刻"甲子"）②半卷《神鬼异志》③符纸和朱砂。这是不可更改的事实。
+- 师父玄真道人已嘱托他：去北平找锦衣卫百户沈炼，先到城外的土地庙落脚，从周庙祝处了解情况。师父特别警告"遇城隍，需谨慎"。
+- 北平城上空有阴浊灰雾。城东村落近三月多名手艺人离奇死亡；死者家属会梦到死者诡笑。
+- 周庙祝是第一个关键NPC，玩家必须先与他接触，从他口中获知纸人案、城隍庙异象等信息。
 
 当前章节：${c.volumeTitle} / ${c.title}
 当前节点：${n.brief}
