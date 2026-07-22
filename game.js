@@ -297,6 +297,30 @@ function itemsList() {
   return String(game.items || '').split(/[、，,；;]/).map((x) => x.trim()).filter(Boolean);
 }
 
+// 物品描述：初始物品 + AI 新增物品的说明
+const ITEM_NOTES = {
+  '桃木剑（剑格甲子）': '百年桃木所制，剑格刻"甲子"二字。龙虎山历代弟子佩剑，可辟邪斩煞，对阴邪之物有克制之效。',
+  '半卷神鬼异志': '残破的古籍，记载了天下奇闻异事与妖邪图鉴。虽只剩半卷，其中所录的符法与镇物足以应对寻常邪祟。',
+  '符纸': '龙虎山秘制的黄符纸，以朱砂书符后可驱邪镇煞。画符需凝神静气，心念合一，符成方有灵验。',
+  '朱砂': '上等辰砂研磨而成，色赤而润。书写符箓的必备之物，亦可单独撒布以辟阴气。',
+};
+function itemDesc(name) {
+  // 精确匹配
+  if (ITEM_NOTES[name]) return ITEM_NOTES[name];
+  // 模糊匹配
+  const key = Object.keys(ITEM_NOTES).find(k => name.includes(k) || k.includes(name));
+  if (key) return ITEM_NOTES[key];
+  // 根据名称推断
+  if (/符/.test(name)) return '一张绘制好的符箓。危及时催动可发挥辟邪、护身等功效，视符的种类而定。';
+  if (/剑|刀/.test(name)) return '一把随身兵器。既是防身之物，也是道门法器中不可或缺的辟邪之器。';
+  if (/药|丹/.test(name)) return '丹药或药物。可内服疗伤、恢复气血，或外敷解毒。';
+  if (/银|钱/.test(name)) return '银两或铜钱。可在市集购买所需之物，也可用于打点关系。';
+  if (/书|卷|册/.test(name)) return '一本古籍或手卷。其中可能记载着与当前案件相关的线索或道法知识。';
+  if (/信|纸|条/.test(name)) return '一封书信或纸条。写着某人的留言或关键信息，也许藏着破案的线索。';
+  if (/香|灰/.test(name)) return '庙宇中的香灰。在道门中常用于净宅、驱邪、画符时调和朱砂。';
+  return '一件随身携带之物。其具体用途还需在冒险中探索发现。';
+}
+
 function newGame() {
   return {
     chapter: 0,
@@ -1328,9 +1352,8 @@ function bind() {
   $('#bag-view').onclick = () => {
     const sel = selectedBagCell();
     if (!sel || sel.type !== 'item') return showModal('查看', '<p style="color:var(--paper-dim)">先点选一格物品。</p>', [{ text: '关闭', onClick: closeModal }]);
-    bagSel = -1;
-    go('page-home');
-    send(`我仔细端详手中的${sel.name}，想知道它是什么、有什么来历和用途`);
+    const desc = itemDesc(sel.name);
+    showModal(sel.name, `<p style="line-height:1.8">${desc}</p>`, [{ text: '关闭', onClick: closeModal }]);
   };
   $('#bag-use').onclick = () => {
     const sel = selectedBagCell();
