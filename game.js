@@ -44,6 +44,9 @@ function ensureCompat(g) {
       }
     }
     g.relations = clean;
+    // 恢复出场顺序计数器
+    const orders = Object.values(g.relations).map(r => r.order).filter(o => typeof o === 'number');
+    relationOrder = orders.length ? Math.max(...orders) + 1 : INITIAL_RELATIONS.length;
   }
   g.snapshots = g.snapshots || [];
   g.clues = g.clues || [];
@@ -135,15 +138,16 @@ function timeText() {
 
 /* ---------- 人物关系系统 ---------- */
 const INITIAL_RELATIONS = ['沈炼', '玄真道人', '周庙祝'];
+let relationOrder = INITIAL_RELATIONS.length; // 按出场顺序编号
 
 function defaultRelations() {
   const r = {};
-  for (const n of INITIAL_RELATIONS) {
+  for (let i = 0; i < INITIAL_RELATIONS.length; i++) {
+    const n = INITIAL_RELATIONS[i];
     if (n === '玄真道人') {
-      // 许七安的师父，自幼相识，天然信任
-      r[n] = { value: 65, met: true };
+      r[n] = { value: 65, met: true, order: i };
     } else {
-      r[n] = { value: 0, met: false };
+      r[n] = { value: 0, met: false, order: i };
     }
   }
   return r;
@@ -181,11 +185,17 @@ function applyRelations(list) {
   const white = relationWhitelist();
   for (const r of list.slice(0, 4)) {
     const name = String(r?.name || '').trim();
+    // AI 标记删除：案件结束与该人物无关
+    if (r?.remove === true && name) {
+      const clean = cleanPersonName(name);
+      if (clean && game.relations[clean]) delete game.relations[clean];
+      if (game.relations[name]) delete game.relations[name];
+      continue;
+    }
     const clean = cleanPersonName(name);
     if (!clean) continue;
     // 新人不在白名单也可以加入
     if (!white.includes(clean) && !white.includes(name)) {
-      // 新增人物：加入白名单并初始化
       game.relations[clean] = { value: 0, met: false };
     }
     const key = game.relations[clean] ? clean : (game.relations[name] ? name : null);
@@ -196,6 +206,11 @@ function applyRelations(list) {
     if (Number.isFinite(delta) && delta !== 0) {
       const safeDelta = Math.max(-10, Math.min(10, Math.round(delta)));
       rec.value = Math.max(0, Math.min(100, rec.value + safeDelta));
+    }
+    // 初次相遇时按顺序编号
+    if (r?.met === true && !rec.met) {
+      rec.met = true;
+      if (rec.order === undefined) { rec.order = relationOrder++; }
     }
     if (r?.met === true) rec.met = true;
   }
@@ -606,18 +621,41 @@ function relRowHtml(name, rec) {
 
 function paintRelations() {
   const rel = game.relations || defaultRelations();
-  $('#qRels').innerHTML = Object.keys(rel).map((n) => relRowHtml(n, rel[n])).join('')
+  const names = Object.keys(rel).sort((a, b) => (rel[a].order ?? 99) - (rel[b].order ?? 99));
+  $('#qRels').innerHTML = names.map((n) => relRowHtml(n, rel[n])).join('')
     || '<div class="clue-row unknown">尚未结识任何人</div>';
+  // 长按删除
+  $('#qRels').querySelectorAll('.rel-row').forEach((row, i) => {
+    let timer;
+    row.addEventListener('pointerdown', () => {
+      timer = setTimeout(() => {
+        const name = names[i];
+        if (!name) return;
+        showModal('删除人物', `<p>确定要移除 <b>${escapeHtml(name)}</b> 吗？</p>`, [
+          { text: '取消', onClick: closeModal },
+          { text: '删除', cls: 'danger', onClick: () => {
+            delete (game.relations || {})[name];
+            save(); paintRelations();
+            closeModal();
+          }}
+        ]);
+      }, 800);
+    });
+    row.addEventListener('pointerup', () => clearTimeout(timer));
+    row.addEventListener('pointerleave', () => clearTimeout(timer));
+  });
 }
 
 function paintPeople() {
   const rel = game.relations || defaultRelations();
   const filter = $('#peopleTabs .tab.on')?.dataset.filter || 'all';
-  const names = Object.keys(rel).filter((n) => {
-    if (filter === 'met') return rel[n].met;
-    if (filter === 'unmet') return !rel[n].met;
-    return true;
-  });
+  const names = Object.keys(rel)
+    .sort((a, b) => (rel[a].order ?? 99) - (rel[b].order ?? 99))
+    .filter((n) => {
+      if (filter === 'met') return rel[n].met;
+      if (filter === 'unmet') return !rel[n].met;
+      return true;
+    });
   $('#peopleList').innerHTML = names.map((name) => {
     const rec = rel[name];
     return `<div class="people-card" data-name="${escapeHtml(name)}">
@@ -907,6 +945,7 @@ ${Object.entries(game.relations || defaultRelations()).map(([name, r]) => `- ${n
 人物关系规则（relations 字段）：
 - 只有与玩家发生真实互动的人物才填 relations；name 必须从这份名单里原样选取：${relationWhitelist().join('、')}。
 - delta 表示本回合关系变化，范围 -10 到 +10，涨跌都要有剧情依据，不要每回合硬凑；初次真实见面并互动时填 "met": true，之后省略 met。
+- 当案件阶段性结束、某人物与后续剧情不再相关时，填 "remove": true（如 {"name":"王贵","remove":true}），系统会将其从人物栏移除。
 
 许七安当前状态：
 ${STAT_DEFS.map((d) => `- ${d.key}：${(game.stats || defaultStats())[d.key]}/${d.max}`).join('\n')}
