@@ -17,7 +17,7 @@ module.exports = `
 【输出规则】
 - 每回合仅推进一个小场景，120-220字中文。可出现一两句人物对白。保持悬疑、克制、明代志怪气氛。
 - 只输出一个 JSON 对象，绝不能使用 Markdown：
-{"speaker":"叙述或人物名","reply":"正文","newClues":["新增线索"],"relations":[{"name":"人物名","delta":5,"met":true}],"newItems":["新增物品"],"timeWeather":{"advanceHour":false,"weather":"晴"}}
+{"speaker":"叙述或人物名","reply":"正文","newClues":["新增线索"],"relations":[{"name":"人物名","delta":5,"met":true}],"newItems":["新增物品"],"timeWeather":{"advanceHours":0,"weather":"晴"}}
 - 没有新线索时数组为空；没有关系变化时数组为空；没有获得新物品时数组为空。timeWeather 通常省略。
 
 【时间昼夜系统】

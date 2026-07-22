@@ -109,7 +109,7 @@ function defaultTime() {
   return { year: '永乐十七年', season: '春', shichen: 4, weather: '晴' };
 }
 
-// 护栏：advanceHour 限速——至少间隔 4 个回合才能再推进
+// 护栏：advanceHours 由 AI 根据场景耗时决定，冷却 2 回合
 let lastHourAdvance = -10;
 function applyTimeWeather(tw) {
   if (!tw || typeof tw !== 'object') return;
@@ -117,8 +117,11 @@ function applyTimeWeather(tw) {
   if (!Number.isInteger(game.time.shichen) || game.time.shichen < 0 || game.time.shichen > 11) {
     game.time.shichen = defaultTime().shichen;
   }
-  if (tw.advanceHour === true && game.turn - lastHourAdvance >= 4) {
-    game.time.shichen = (game.time.shichen + 1) % 12;
+  // advanceHours: AI 决定跳过几个时辰，范围 0~6，冷却 2 轮
+  const n = Number(tw.advanceHours);
+  if (Number.isFinite(n) && n > 0 && game.turn - lastHourAdvance >= 2) {
+    const skip = Math.max(0, Math.min(6, Math.round(n)));
+    game.time.shichen = (game.time.shichen + skip) % 12;
     lastHourAdvance = game.turn;
   }
   const w = String(tw.weather || '');
@@ -876,7 +879,8 @@ function systemPrompt(correction = '') {
   戌时(19-21)亥时(21-23)→夜晚：掌灯、月色、更夫、寂静、夜风
   子时(23-1)丑时(1-3)寅时(3-5)→深夜：漆黑、万籁俱寂、烛火、寒气
 - 严禁在午时描写"夜色"，严禁在子时描写"阳光"。
-- advanceHour：赶路半天、住宿过夜、打坐一个时辰以上 → 填 true 推进一步。普通对话观察 → 省略。
+- advanceHours：根据本回合行动耗时填跳过的时辰数（0~6）：
+  闲聊/观察/小动作→0，短途走动/喝茶吃饭→1，赶路半天/打坐→2~3，长途跋涉/睡一整夜→4~6
 - 天气白名单：晴、阴、雨、雾、雪。不要用"夜"当天气。
 
 当前场景：${(game.location || defaultLocation()).name}
@@ -911,7 +915,7 @@ ${STAT_DEFS.map((d) => `- ${d.key}：${(game.stats || defaultStats())[d.key]}/${
 - progress 只有在玩家确实完成当前节点的观察、询问、跟随、查探、进入等有效行动时才可为 advance；胡话、越界、攻击关键人物必须 hold。
 - suggestions 给出 3 个贴合当前节点、玩家下一步可采取的行动建议，每条 4 到 14 个字，第一人称动词开头，风格符合明代志怪；不得包含任何后文剧透或违禁内容。
 - 只有当玩家身份或随身之物在本回合真实发生变化时，才填 identity（如“许七安 · 龙虎山弟子”）或 items（如“桃木剑、残卷、符纸”）字段，没变化就省略；不得把身份改成锦衣卫、捕头、官差。
-- 只输出 JSON：{"speaker":"叙述或人物名","reply":"正文","newClues":["短线索"],"progress":"hold|advance","suggestions":["建议一","建议二","建议三"],"statChanges":[{"name":"气血","delta":-5}],"identity":"有变化才填","items":"有变化才填","timeWeather":{"advanceHour":false,"weather":"晴"},"relations":[{"name":"沈炼","delta":5,"met":true}],"location":"场景变化才填","note":"关键事件标题，没有就省略"}
+- 只输出 JSON：{"speaker":"叙述或人物名","reply":"正文","newClues":["短线索"],"progress":"hold|advance","suggestions":["建议一","建议二","建议三"],"statChanges":[{"name":"气血","delta":-5}],"identity":"有变化才填","items":"有变化才填","timeWeather":{"advanceHours":0,"weather":"晴"},"relations":[{"name":"沈炼","delta":5,"met":true}],"location":"场景变化才填","note":"关键事件标题，没有就省略"}
 ${correction}`;
 }
 
