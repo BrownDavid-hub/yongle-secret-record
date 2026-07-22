@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/config.local.js", "destination": "/config.vercel.js" }
+  ]
+}
