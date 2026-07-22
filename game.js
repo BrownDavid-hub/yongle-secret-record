@@ -207,12 +207,16 @@ function applyRelations(list) {
       const safeDelta = Math.max(-10, Math.min(10, Math.round(delta)));
       rec.value = Math.max(0, Math.min(100, rec.value + safeDelta));
     }
-    // 初次相遇时按顺序编号
+    // 初次相遇时按顺序编号，存储AI提供的背景说明
     if (r?.met === true && !rec.met) {
       rec.met = true;
       if (rec.order === undefined) { rec.order = relationOrder++; }
     }
     if (r?.met === true) rec.met = true;
+    // AI 提供的人物背景说明（首次或补充）
+    if (typeof r?.note === 'string' && r.note.trim()) {
+      rec.note = r.note.trim().slice(0, 80);
+    }
   }
 }
 
@@ -613,11 +617,12 @@ function paintClues() {
 
 function relRowHtml(name, rec) {
   const status = relationStatus(rec);
-  return `<div class="rel-row">
+  const note = rec.note || '';
+  return `<div class="rel-row" data-name="${escapeHtml(name)}" data-note="${escapeHtml(note)}">
     <img class="rel-ava" src="assets/people/${escapeHtml(name)}.png" alt="${escapeHtml(name)}"
          onerror="this.onerror=function(){this.remove()};this.src='assets/people/剪影.png'">
     <div class="rel-info">
-      <div class="rel-name">${escapeHtml(name)}</div>
+      <div class="rel-name" style="cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(201,169,106,.3)">${escapeHtml(name)}</div>
       <div class="rel-state">${status}</div>
       ${rec.met ? `<div class="rel-bar"><i style="width:${Math.min(100, rec.value)}%"></i></div>` : ''}
     </div>
@@ -630,6 +635,22 @@ function paintRelations() {
   const names = Object.keys(rel).sort((a, b) => (rel[a].order ?? 99) - (rel[b].order ?? 99));
   $('#qRels').innerHTML = names.map((n) => relRowHtml(n, rel[n])).join('')
     || '<div class="clue-row unknown">尚未结识任何人</div>';
+  // 点击人名弹出剧情关联
+  $('#qRels').querySelectorAll('.rel-name').forEach((el) => {
+    el.onclick = () => {
+      const row = el.closest('.rel-row');
+      const name = row?.dataset.name || '';
+      const note = row?.dataset.note || '';
+      const rec = (game.relations || {})[name];
+      const status = rec ? relationStatus(rec) : '未知';
+      const val = rec?.met ? rec.value : '???';
+      showModal(name,
+        `<p><b>关系：</b>${status}（${val}）</p>
+         <p style="color:var(--paper-dim);margin-top:6px">${note || '暂无此人的背景记录。随着剧情推进，AI 会补充相关信息。'}</p>`,
+        [{ text: '关闭', onClick: closeModal }]
+      );
+    };
+  });
 }
 
 function paintPeople() {
@@ -911,8 +932,9 @@ function systemPrompt(correction = '') {
 ${Object.entries(game.relations || defaultRelations()).map(([name, r]) => `- ${name}：关系值 ${r.value}，${relationStatus(r)}`).join('\n') || '无'}
 人物关系规则（relations 字段）：
 - 只有与玩家发生真实互动的人物才填 relations；name 必须从这份名单里原样选取：${relationWhitelist().join('、')}。
-- delta 表示本回合关系变化，范围 -10 到 +10，涨跌都要有剧情依据，不要每回合硬凑；初次真实见面并互动时填 "met": true，之后省略 met。
-- 当案件阶段性结束、某人物与后续剧情不再相关时，填 "remove": true（如 {"name":"王贵","remove":true}），系统会将其从人物栏移除。
+- delta 表示本回合关系变化，范围 -10 到 +10，涨跌都要有剧情依据；初次真实见面并互动时填 "met": true，之后省略 met。
+- note：人物首次出场或身份揭露时，填一句 10~30 字背景说明（如 "note":"临河镇纸扎铺老板，其妻三年前病逝后被镇于井中"）。之后有重要新发现可更新，否则省略。
+- 当案件阶段性结束、某人物与后续剧情不再相关时，填 "remove": true，系统会将其从人物栏移除。
 
 许七安当前状态：
 ${STAT_DEFS.map((d) => `- ${d.key}：${(game.stats || defaultStats())[d.key]}/${d.max}`).join('\n')}
