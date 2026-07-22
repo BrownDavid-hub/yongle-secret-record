@@ -1267,7 +1267,13 @@ function bind() {
     ]);
   };
 
-  $('#case-refresh').onclick = paintCase;
+  $('#case-refresh').onclick = () => {
+    const clues = game.clues.length ? game.clues.join('；') : '暂无';
+    go('page-home');
+    setTimeout(() => {
+      send(`帮我整理一下当前线索：${clues}。分析它们之间的关联，推理可能的真相。`);
+    }, 300);
+  };
 
   // 老板键：按 ` 瞬间切换摸鱼模式
   document.addEventListener('keydown', (e) => {
