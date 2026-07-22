@@ -613,7 +613,7 @@ function paintPeople() {
   });
   $('#peopleList').innerHTML = names.map((name) => {
     const rec = rel[name];
-    return `<div class="people-card">
+    return `<div class="people-card" data-name="${escapeHtml(name)}">
       <img class="pc-ava" src="assets/people/${escapeHtml(name)}.png" alt="${escapeHtml(name)}"
            onerror="this.onerror=function(){this.remove()};this.src='assets/people/剪影.png'">
       <div>
@@ -623,6 +623,30 @@ function paintPeople() {
       </div>
     </div>`;
   }).join('') || '<div class="clue-row unknown" style="margin:10px 12px">这个分类下暂无人物</div>';
+
+  // 长按删除人物
+  $('#peopleList').querySelectorAll('.people-card').forEach((card) => {
+    let pressTimer;
+    card.addEventListener('pointerdown', () => {
+      pressTimer = setTimeout(() => {
+        const name = card.dataset.name;
+        if (!name) return;
+        showModal('删除人物', `<p>确定要从人物列表中移除 <b>${escapeHtml(name)}</b> 吗？</p><p style="color:var(--paper-dim);font-size:12px">此操作不可撤销，但不影响剧情进度。</p>`, [
+          { text: '取消', onClick: closeModal },
+          { text: '删除', cls: 'danger', onClick: () => {
+            const rel = game.relations || {};
+            delete rel[name];
+            game.relations = rel;
+            save();
+            paintPeople();
+            closeModal();
+          }}
+        ]);
+      }, 800);
+    });
+    card.addEventListener('pointerup', () => clearTimeout(pressTimer));
+    card.addEventListener('pointerleave', () => clearTimeout(pressTimer));
+  });
 }
 
 function paintStatsBar() {
