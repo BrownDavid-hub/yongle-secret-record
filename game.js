@@ -1327,11 +1327,10 @@ function bind() {
   // 背包操作
   $('#bag-view').onclick = () => {
     const sel = selectedBagCell();
-    if (!sel) return showModal('查看', '<p style="color:var(--paper-dim)">先点选一格物品。</p>', [{ text: '关闭', onClick: closeModal }]);
-    showModal(sel.name, sel.type === 'clue'
-      ? `<p>线索：${escapeHtml(sel.name)}</p><p style="color:var(--paper-dim)">这是查案过程中记下的关键信息。</p>`
-      : `<p>${escapeHtml(sel.name)}</p><p style="color:var(--paper-dim)">随身之物。关键时刻或许能派上用场。</p>`,
-      [{ text: '关闭', onClick: closeModal }]);
+    if (!sel || sel.type !== 'item') return showModal('查看', '<p style="color:var(--paper-dim)">先点选一格物品。</p>', [{ text: '关闭', onClick: closeModal }]);
+    bagSel = -1;
+    go('page-home');
+    send(`我仔细端详手中的${sel.name}，想知道它是什么、有什么来历和用途`);
   };
   $('#bag-use').onclick = () => {
     const sel = selectedBagCell();
