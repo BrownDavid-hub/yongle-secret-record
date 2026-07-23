@@ -1,4 +1,4 @@
-/* 永乐秘闻录 · 竖屏版游戏逻辑（移植自旧版 app.js，UI 绑定 prototype.html） */
+﻿/* 永乐秘闻录 · 竖屏版游戏逻辑（移植自旧版 app.js，UI 绑定 prototype.html） */
 const STORAGE_KEY = 'yongle-game-v4';
 // 直接双击 index.html 打开时，前端用 config.local.js 里的密钥直连 DeepSeek；
 // 通过本地服务端打开时，走服务端代理（密钥不落前端）。
@@ -294,7 +294,9 @@ function itemIcon(name) {
 }
 
 function itemsList() {
-  return String(game.items || '').split(/[、，,；;]/).map((x) => x.trim()).filter(Boolean);
+  const raw = String(game.items || '');
+  if (!raw || raw === '两手空空') return [];
+  return raw.split(/[、，,；;]/).map((x) => x.trim()).filter(Boolean);
 }
 
 // 物品描述：初始物品 + AI 新增物品的说明
@@ -305,19 +307,25 @@ const ITEM_NOTES = {
   '朱砂': '上等辰砂研磨而成，色赤而润。书写符箓的必备之物，亦可单独撒布以辟阴气。',
 };
 function itemDesc(name) {
-  // 精确匹配
+  // 1. 精确匹配 ITEM_NOTES
   if (ITEM_NOTES[name]) return ITEM_NOTES[name];
-  // 模糊匹配
-  const key = Object.keys(ITEM_NOTES).find(k => name.includes(k) || k.includes(name));
+  // 2. 单向模糊匹配：物品名包含已知物品名
+  const key = Object.keys(ITEM_NOTES).find(k => name.includes(k));
   if (key) return ITEM_NOTES[key];
-  // 根据名称推断
+  // 3. 按关键词推断——越具体越靠前，避免宽泛正则误匹配
+  if (/锁魂|镇魂|封魂|拘魂|摄魂/.test(name)) return '一件邪道法器，以阴邪之术炼制，可困锁或驱使亡魂。触之阴冷刺骨，非道行深厚者不可妄动。';
+  if (/镇宅|辟邪|驱邪|护身/.test(name)) return '一张护身符箓。可镇宅辟邪，护佑持符之人免遭阴气侵扰。效力视画符者道行而定。';
   if (/符/.test(name)) return '一张绘制好的符箓。危及时催动可发挥辟邪、护身等功效，视符的种类而定。';
+  if (/桃木/.test(name)) return '桃木所制的道门法器。桃为五木之精，阳刚辟邪，对阴煞鬼祟有天然的克制之力。';
   if (/剑|刀/.test(name)) return '一把随身兵器。既是防身之物，也是道门法器中不可或缺的辟邪之器。';
+  if (/铜镜/.test(name)) return '一面古铜镜。据说能照见邪祟本相，但不可直对日光，否则易损。';
   if (/药|丹/.test(name)) return '丹药或药物。可内服疗伤、恢复气血，或外敷解毒。';
-  if (/银|钱/.test(name)) return '银两或铜钱。可在市集购买所需之物，也可用于打点关系。';
-  if (/书|卷|册/.test(name)) return '一本古籍或手卷。其中可能记载着与当前案件相关的线索或道法知识。';
-  if (/信|纸|条/.test(name)) return '一封书信或纸条。写着某人的留言或关键信息，也许藏着破案的线索。';
+  if (/铜钱|碎银|银两|银子|银票/.test(name)) return '银两或铜钱。可在市集购买所需之物，也可用于打点关系。';
+  if (/书|卷|册|志|经/.test(name)) return '一本古籍或手卷。其中可能记载着与当前案件相关的线索或道法知识。';
+  if (/信|密信|纸条/.test(name)) return '一封书信或纸条。写着某人的留言或关键信息，也许藏着破案的线索。';
   if (/香|灰/.test(name)) return '庙宇中的香灰。在道门中常用于净宅、驱邪、画符时调和朱砂。';
+  if (/灯笼|烛|灯/.test(name)) return '一盏照明之物。在漆黑的夜晚不可或缺，但灯油或蜡烛终有燃尽之时。';
+  if (/骨|粉末/.test(name)) return '来历不明的残留之物。散发着淡淡的阴气，或许是某种邪术仪式后留下的痕迹。';
   return '一件随身携带之物。其具体用途还需在冒险中探索发现。';
 }
 
@@ -735,8 +743,7 @@ function paintBag() {
       ${cell.qty > 1 ? `<span class="bi-num">${cell.qty}</span>` : ''}
       <img src="${itemIcon(cell.name)}" alt="">
       <span class="bi-name">${escapeHtml(cell.name)}</span>
-    </div>`).join('')
-    + Array.from({ length: Math.max(0, 6 - cells.length) }, () => '<div class="bag-cell empty"></div>').join('');
+    </div>`).join('');
   grid.querySelectorAll('.bag-cell[data-i]').forEach((el) => {
     el.onclick = () => {
       bagSel = Number(el.dataset.i);
@@ -950,7 +957,15 @@ function systemPrompt(correction = '') {
 - 只有玩家确实移动到了新的地点时，才填 location（2 到 8 个字的地点名，如 土地庙、官道、城隍庙、客栈）；原地行动就省略。
 
 说话人规则（speaker 字段）：
-- 本回合主要是谁在对玩家开口说话，speaker 就填谁的名字（从本章可出现人物或已相遇人物中选，如 沈炼、玄真道人、周庙祝）；纯叙述、没有人物开口时填 "旁白"。
+- speaker 只能填 NPC 名字或"旁白"。**严禁填"许七安"**——许七安由真人玩家控制，AI 不得替他说话、替他做决定、替他表达情绪。
+- 本回合主要是谁在对玩家开口，就填谁（从本章可出现人物中选，如 沈炼、玄真道人、周庙祝）；纯叙述填 "旁白"。
+
+【NPC 知识边界——最高优先级，全章节通用】
+当你扮演任何 NPC 回答玩家时，必须遵守以下三条铁律：
+1. 身份决定认知：NPC 只能说与自己身份、职业、亲身经历直接相关的事。庙祝说庙里的事，铁匠说打铁的事，锦衣卫说查案的事。超出身份范围的一概不知。
+2. 不知是常态，编造是错误：当玩家问到 NPC 不知道的事，该 NPC 必须真实地表现"不知道"——可以沉默、摇头、岔开话题、或说"这事你得去问某某"。严禁 NPC 替其他角色代言、替玩家推理、或凭空知道只有幕后人物才知的真相。
+3. 真相在行动里，不在对话里：核心悬念（作案手法、幕后黑手、妖邪真身等）不能通过"问对人"直接获得。玩家必须亲自调查（勘察现场、翻阅古籍、施法探测、拼凑线索）才能逐步揭示。NPC 最多给出线索碎片，绝不能直接给结论。
+4. 传闻也有边界：NPC 用"听人说""据说""好像"来软化语气给信息，同样是泄密。一个庙祝不可能"听说"锦衣卫卷宗，一个村民不可能"听说"道门破解之法。不知就是不知——沉默、摇头、"这我真不知道"，同样是好回答。不必每问必答，不必每问都用"好像听人说过"来找补。
 
 当前人物关系：
 ${Object.entries(game.relations || defaultRelations()).map(([name, r]) => `- ${name}：关系值 ${r.value}，${relationStatus(r)}`).join('\n') || '无'}
@@ -968,18 +983,28 @@ ${STAT_DEFS.map((d) => `- ${d.key}：${(game.stats || defaultStats())[d.key]}/${
 
 规则：
 - 每次回复 120 到 260 字，像明代志怪悬疑小说。
-- newClues 最多 2 条，每条不超过 16 个字，只写本回合新发现的关键信息，不要复述已知线索。
+- newClues 每次最多 1 条，不超过 16 个字，必须与当前节点目标直接相关。不要开出与本章核心事件无关的新方向。没有新发现就省略。
 - 玩家乱来、现代化、跳章节、杀关键人物、改变主线时，让行为自然落空，再用当前线索引回本节点目标。
+- 【线索收敛——所有支线必须指向主线】你给出的每一条信息碎片（newClues、NPC 对话、环境描述），都必须与当前章节的核心事件"${n.brief}"相关联。想象你在拼一幅画——每回合给玩家一块拼图碎片，所有碎片拼起来指向同一个真相，而不是各指各的。严禁发散出新案件、新反派、新势力。
 - note 字段：本回合若发生值得记下的关键事件（重要发现、人物初遇、章节转折），填一个 4 到 12 字的笔记标题；没有就省略，不要每回合硬凑。
 
 - AI 只负责演绎和对话，不能决定跳到远处剧情。
 - 不要把后续章节标题、后续真相、后续反派提前说出来。
 - 不要把许七安改成锦衣卫、捕头、官差；他当前是龙虎山弟子。
 - 不要让已知关键人物无故死亡，不要创造会抢主线的新角色。
+- 【严禁自创NPC】路人可用"老汉""妇人""茶客"等泛称，不得赋予姓名。有名有姓的NPC只能从本章人物名单中选取，不得自行编造（如"李庙祝""纸扎铺掌柜"等均属违规）。
 - progress 只有在玩家确实完成当前节点的观察、询问、跟随、查探、进入等有效行动时才可为 advance；胡话、越界、攻击关键人物必须 hold。
-- suggestions 给出 3 个贴合当前节点、玩家下一步可采取的行动建议，每条 4 到 14 个字，第一人称动词开头，风格符合明代志怪；不得包含任何后文剧透或违禁内容。
+- suggestions 给出 3 个贴合当前节点的行动建议，每条 4 到 14 个字。其中至少 2 个应指向本章核心事件（如调查城隍庙、追踪纸人来源），最多 1 个可以是辅助探索。不得包含后文剧透。
 - 只有当玩家身份或随身之物在本回合真实发生变化时，才填 identity（如“许七安 · 龙虎山弟子”）或 items（如“桃木剑、残卷、符纸”）字段，没变化就省略；不得把身份改成锦衣卫、捕头、官差。
-- 只输出 JSON：{"speaker":"叙述或人物名","reply":"正文","newClues":["短线索"],"progress":"hold|advance","suggestions":["建议一","建议二","建议三"],"statChanges":[{"name":"气血","delta":-5}],"identity":"有变化才填","items":"有变化才填","timeWeather":{"advanceHours":0,"weather":"晴"},"relations":[{"name":"沈炼","delta":5,"met":true}],"location":"场景变化才填","note":"关键事件标题，没有就省略"}
+- 【newItems 物品获取——最高优先级，每次回复前必须自检】
+  自检三个问题：
+  ① 本回合中，NPC 是否把实物交给了玩家（赠与、递还、交付）？
+  ② 本回合中，玩家是否捡到了/发现了可携带的物品？
+  ③ 本回合中，玩家是否自己制作了东西（画符、炼药、打造、书写）？
+  只要有一个答案是"是"，就必须把产物写入 newItems 数组。
+  示例：画了驱邪符 → newItems:["驱邪符一张"]；NPC 说"拿着这把钥匙"→ newItems:["钥匙一把"]；玩家从棺材捡起铜钱→ newItems:["锁魂铜钱一枚"]。
+  仅叙述"画好了""收下了"而不在 newItems 列出对应物品，是严重错误。
+- 只输出 JSON：{"speaker":"叙述或人物名","reply":"正文","newClues":["短线索"],"progress":"hold|advance","suggestions":["建议一","建议二","建议三"],"statChanges":[{"name":"气血","delta":-5}],"identity":"有变化才填","items":"有变化才填","newItems":["有新增物品才填"],"timeWeather":{"advanceHours":0,"weather":"晴"},"relations":[{"name":"沈炼","delta":5,"met":true}],"location":"场景变化才填","note":"关键事件标题，没有就省略"}
 ${correction}`;
 }
 
@@ -1152,12 +1177,12 @@ async function send(action) {
       && !/手机|电脑|汽车|飞机|手枪|炸弹/.test(data.items)) {
       game.items = data.items.trim().slice(0, 60);
     }
-    // newItems: 追加新物品，不去重（允许多张符纸等）
+    // newItems: 追加新物品，不去重（允许多张符纸等），每回合最多5件
     if (Array.isArray(data.newItems) && data.newItems.length) {
       const cur = itemsList();
-      const adds = data.newItems.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim().slice(0, 20));
+      const adds = data.newItems.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim().slice(0, 20)).slice(0, 5);
       const merged = [...cur, ...adds];
-      game.items = merged.join('、') || '两手空空';
+      game.items = merged.join('、') || '';
     }
     if (typeof data.note === 'string' && data.note.trim()) {
       pushNote(data.note.trim(), String(data.reply || '').slice(0, 60));
@@ -1282,6 +1307,22 @@ function setStealth(on) {
   document.body.classList.toggle('fish', on);
   $('#m-fish-sub').textContent = on ? '已开启（再点一次恢复）' : '伪装成朴素备忘录';
   localStorage.setItem(STEALTH_KEY, on ? '1' : '0');
+  // 摸鱼模式：退出按钮 + 返回按钮文字
+  let exitBtn = document.getElementById('fish-exit');
+  if (on) {
+    if (!exitBtn) {
+      exitBtn = document.createElement('span');
+      exitBtn.id = 'fish-exit';
+      exitBtn.textContent = '退出';
+      exitBtn.onclick = () => setStealth(false);
+      document.querySelector('.home-header')?.appendChild(exitBtn);
+    }
+    // 所有返回按钮改为文字
+    document.querySelectorAll('.btn-back').forEach(b => { b.textContent = '返回'; });
+  } else {
+    if (exitBtn) exitBtn.remove();
+    document.querySelectorAll('.btn-back').forEach(b => { b.textContent = ''; });
+  }
 }
 
 /* ---------- 页面切换 ---------- */
